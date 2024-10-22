@@ -139,18 +139,19 @@ def run(
                 #NOTIFY PERSON EVENT
                 for *xyxy, conf, cls in reversed(det):
                     # Print the position (bounding box coordinates)
-                    seen += 1
-                    new_person_count = len(det)
-
+                    new_person_count = len(det)  # Current detected person count
+                    
                     if new_person_count != current_person_count:
                         if new_person_count > current_person_count:
-                            notify_person_event('enter')  # Notify that a person has entered
-                            print("enter")
+                            notify_person_event(f'{current_person_count} -> Enter -> {current_person_count + 1}')  # Notify that a person has entered
+                            print(f'{current_person_count} -> Enter -> {current_person_count + 1}')  # Notify that a person has entered
+
                         else:
-                            notify_person_event('exit')  # Notify that a person has exited
-                            print("exit")
+                            notify_person_event(f'{current_person_count} -> Exit -> {current_person_count - 1}')  # Notify that a person has exited
+                            print(f'{current_person_count} -> Exit -> {current_person_count - 1}')  # Notify that a person has exited
+
                     # Update the current person count
-                    current_person_count = new_person_count
+                    current_person_count = new_person_count 
                     #print(f"Detected {names[int(cls)]} at position: {xyxy}")
 
                     #
