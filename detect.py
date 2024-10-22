@@ -6,6 +6,9 @@ from pathlib import Path
 from api import notify_person_event
 import torch
 
+#python detect.py --weights yolov9-e.pt --conf 0.5 --source 0 --device 0 --class 0 --nosave
+
+
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLO root directory
 if str(ROOT) not in sys.path:
@@ -132,8 +135,8 @@ def run(
                     n = (det[:, 5] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
-                # Write results
-                # Write results
+
+                #NOTIFY PERSON EVENT
                 for *xyxy, conf, cls in reversed(det):
                     # Print the position (bounding box coordinates)
                     seen += 1
