@@ -3,7 +3,7 @@ import os
 import platform
 import sys
 from pathlib import Path
-
+from api import notify_person_event
 import torch
 
 FILE = Path(__file__).resolve()
@@ -18,6 +18,7 @@ from utils.general import (LOGGER, Profile, check_file, check_img_size, check_im
                            increment_path, non_max_suppression, print_args, scale_boxes, strip_optimizer, xyxy2xywh)
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, smart_inference_mode
+
 
 
 @smart_inference_mode()
@@ -58,6 +59,8 @@ def run(
     screenshot = source.lower().startswith('screen')
     if is_url and is_file:
         source = check_file(source)  # download
+
+    current_person_count = 0
 
     # Directories
     save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
@@ -130,7 +133,24 @@ def run(
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
+                # Write results
                 for *xyxy, conf, cls in reversed(det):
+                    # Print the position (bounding box coordinates)
+                    seen += 1
+                    new_person_count = len(det)
+
+                    if new_person_count != current_person_count:
+                        if new_person_count > current_person_count:
+                            notify_person_event('enter')  # Notify that a person has entered
+                            print("enter")
+                        else:
+                            notify_person_event('exit')  # Notify that a person has exited
+                            print("exit")
+                    # Update the current person count
+                    current_person_count = new_person_count
+                    #print(f"Detected {names[int(cls)]} at position: {xyxy}")
+
+                    #
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
@@ -174,11 +194,11 @@ def run(
                     vid_writer[i].write(im0)
 
         # Print time (inference-only)
-        LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
+        #LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
 
     # Print results
     t = tuple(x.t / seen * 1E3 for x in dt)  # speeds per image
-    LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
+    #LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
