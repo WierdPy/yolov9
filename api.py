@@ -13,6 +13,7 @@ def notify_person_event(event_type):
         try:
             response = requests.post(url, data=data)
             response.raise_for_status()
-            print(f"Notification sent: {event_type}")
+            #print(f"Notification sent: {event_type}")
         except requests.exceptions.RequestException as e:
-            print(f"Failed to send notification: {e}")
+            #print(f"Failed to send notification: {e}")
+            pass

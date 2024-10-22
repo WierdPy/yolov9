@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from api import notify_person_event
 import torch
+from datetime import datetime
 
 #python detect.py --weights yolov9-e.pt --conf 0.5 --source 0 --device 0 --class 0 --nosave
 
@@ -87,6 +88,7 @@ def run(
         dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
     vid_path, vid_writer = [None] * bs, [None] * bs
 
+
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
@@ -126,6 +128,33 @@ def run(
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+
+
+            #print(len(det))
+
+            current_time = datetime.now().time()
+            current_time_val = f"{current_time.hour:02}:{current_time.minute:02}:{current_time.second:02}"
+            new_person_count = len(det)  # Current detected person count
+            
+            if new_person_count != current_person_count:
+                if new_person_count > current_person_count:
+                    everybodyout = False
+                    notify_person_event(f'{current_person_count} -> Enter -> {current_person_count + 1}: {current_time_val}')  # Notify that a person has entered
+                    print(f'{current_person_count} -> Enter -> {current_person_count + 1}: {current_time_val}')  # Notify that a person has entered
+
+                else:
+                    if current_person_count == 1:
+                        everybodyout = True
+                    notify_person_event(f'{current_person_count} -> Exit -> {current_person_count - 1}: {current_time_val}')  # Notify that a person has exited
+                    print(f'{current_person_count} -> Exit -> {current_person_count - 1}: {current_time_val}')  # Notify that a person has exited
+
+            # Update the current person count
+            current_person_count = new_person_count 
+
+
+
+
+
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
@@ -134,24 +163,10 @@ def run(
                 for c in det[:, 5].unique():
                     n = (det[:, 5] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-
-
                 #NOTIFY PERSON EVENT
                 for *xyxy, conf, cls in reversed(det):
                     # Print the position (bounding box coordinates)
-                    new_person_count = len(det)  # Current detected person count
-                    
-                    if new_person_count != current_person_count:
-                        if new_person_count > current_person_count:
-                            notify_person_event(f'{current_person_count} -> Enter -> {current_person_count + 1}')  # Notify that a person has entered
-                            print(f'{current_person_count} -> Enter -> {current_person_count + 1}')  # Notify that a person has entered
 
-                        else:
-                            notify_person_event(f'{current_person_count} -> Exit -> {current_person_count - 1}')  # Notify that a person has exited
-                            print(f'{current_person_count} -> Exit -> {current_person_count - 1}')  # Notify that a person has exited
-
-                    # Update the current person count
-                    current_person_count = new_person_count 
                     #print(f"Detected {names[int(cls)]} at position: {xyxy}")
 
                     #
@@ -167,7 +182,6 @@ def run(
                         annotator.box_label(xyxy, label, color=colors(c, True))
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
-
             # Stream results
             im0 = annotator.result()
             if view_img:
